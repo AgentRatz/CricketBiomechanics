@@ -352,47 +352,63 @@ elif app_mode == "Analyze Session":
         
         with col1:
             # Frame slider
-            frame_count = len(processed_results)
-            if frame_count > 0:
-                st.session_state.frame_index = st.slider("Frame", 0, frame_count-1, st.session_state.frame_index)
-                
-                # Display current frame with landmarks
-                current_result = processed_results[st.session_state.frame_index]
-                
-                # Check if the frame is available (it might be None if loaded from DB)
-                if current_result.get('frame') is not None:
-                    st.image(current_result['frame'], caption=f"Frame {st.session_state.frame_index}", use_column_width=True)
+            # Safety check for processed_results
+            if processed_results:
+                frame_count = len(processed_results)
+                if frame_count > 0:
+                    # Initialize frame_index if needed
+                    if not hasattr(st.session_state, 'frame_index') or st.session_state.frame_index >= frame_count:
+                        st.session_state.frame_index = 0
+                    
+                    st.session_state.frame_index = st.slider("Frame", 0, frame_count-1, st.session_state.frame_index)
+                    
+                    # Display current frame with landmarks
+                    current_result = processed_results[st.session_state.frame_index]
+                    
+                    # Check if the frame is available (it might be None if loaded from DB)
+                    if current_result and current_result.get('frame') is not None:
+                        st.image(current_result['frame'], caption=f"Frame {st.session_state.frame_index}", use_column_width=True)
+                    else:
+                        # Display a placeholder for frame data
+                        st.info("Frame image not available - using simplified data from database")
+                        # Display a placeholder image with the VIT-AP logo
+                        st.image("attached_assets/vitap.png", caption="Frame data not stored in database", use_column_width=True)
                 else:
-                    # Display a placeholder for frame data
-                    st.info("Frame image not available - using simplified data from database")
-                    # Display a placeholder image with the VIT-AP logo
-                    st.image("attached_assets/vitap.png", caption="Frame data not stored in database", use_column_width=True)
+                    st.warning("No frames available in the processed results.")
+            else:
+                st.warning("No processed results available for this session.")
         
         with col2:
             st.subheader("Frame Controls")
             col_prev, col_next = st.columns(2)
             
             with col_prev:
-                if st.button("◀ Previous"):
+                if st.button("◀ Previous") and hasattr(st.session_state, 'frame_index'):
                     st.session_state.frame_index = max(0, st.session_state.frame_index - 1)
                     st.rerun()
             
             with col_next:
                 if st.button("Next ▶"):
-                    st.session_state.frame_index = min(frame_count - 1, st.session_state.frame_index + 1)
-                    st.rerun()
+                    # Initialize frame_count if needed
+                    frame_count = len(processed_results) if processed_results else 0
+                    if frame_count > 0:  # Only proceed if there are frames
+                        st.session_state.frame_index = min(frame_count - 1, st.session_state.frame_index + 1)
+                        st.rerun()
             
-            # Display frame biomechanics
-            current_result = processed_results[st.session_state.frame_index]
-            if current_result['biomechanics']:
-                st.subheader("Current Frame Metrics")
-                biometrics = current_result['biomechanics']
-                st.metric("Arm Angle", f"{biometrics['arm_angle']:.1f}°")
-                st.metric("Wrist Angle", f"{biometrics['wrist_angle']:.1f}°")
-                st.metric("Trunk Angle", f"{biometrics['trunk_angle']:.1f}°")
-                st.metric("Front Knee Angle", f"{biometrics['front_knee_angle']:.1f}°")
+            # Display frame biomechanics - with additional safety checks
+            if processed_results and 0 <= st.session_state.frame_index < len(processed_results):
+                current_result = processed_results[st.session_state.frame_index]
+                if current_result and 'biomechanics' in current_result and current_result['biomechanics']:
+                    st.subheader("Current Frame Metrics")
+                    biometrics = current_result['biomechanics']
+                    st.metric("Arm Angle", f"{biometrics.get('arm_angle', 0):.1f}°")
+                    st.metric("Wrist Angle", f"{biometrics.get('wrist_angle', 0):.1f}°")
+                    st.metric("Trunk Angle", f"{biometrics.get('trunk_angle', 0):.1f}°")
+                    st.metric("Front Knee Angle", f"{biometrics.get('front_knee_angle', 0):.1f}°")
+                else:
+                    st.warning("No biomechanical data detected in this frame")
             else:
-                st.warning("No biomechanical data detected in this frame")
+                st.warning("No frames available for biomechanical analysis")
         
         # Detailed analysis tabs
         st.subheader("Detailed Analysis")
@@ -428,12 +444,13 @@ elif app_mode == "Analyze Session":
                                 st.info(f"Phase {phase_name} frame not available")
                                 st.image("attached_assets/vitap.png", width=150)
                             
-                            if phase_result['biomechanics']:
+                            if phase_result and 'biomechanics' in phase_result and phase_result['biomechanics']:
                                 biometrics = phase_result['biomechanics']
+                                # Use get() with defaults to prevent KeyError
                                 metrics = [
-                                    f"Arm Angle: {biometrics['arm_angle']:.1f}°",
-                                    f"Wrist Angle: {biometrics['wrist_angle']:.1f}°",
-                                    f"Trunk Angle: {biometrics['trunk_angle']:.1f}°"
+                                    f"Arm Angle: {biometrics.get('arm_angle', 0):.1f}°",
+                                    f"Wrist Angle: {biometrics.get('wrist_angle', 0):.1f}°",
+                                    f"Trunk Angle: {biometrics.get('trunk_angle', 0):.1f}°"
                                 ]
                                 st.markdown("<br>".join(metrics), unsafe_allow_html=True)
                             
@@ -521,9 +538,23 @@ elif app_mode == "Session History":
             selected_session = next((s for s in st.session_state.session_history if s['id'] == selected_session_id), None)
             
             if selected_session:
-                st.session_state.current_session_data = selected_session
-                st.session_state.processed_frames = selected_session['processed_results']
-                st.session_state.biomechanics_data = biomechanics.extract_time_series_data(selected_session['processed_results'])
+                # Load the full session from the database (the history might have limited data)
+                full_session = data_handler.load_session(selected_session['id'])
+                
+                if full_session:
+                    # Use the full session data
+                    st.session_state.current_session_data = full_session
+                else:
+                    # In case loading the full session fails, use what we have
+                    st.session_state.current_session_data = selected_session
+                    # Ensure processed_results exists
+                    if 'processed_results' not in selected_session:
+                        selected_session['processed_results'] = []
+                
+                # Safely access processed_results with a default empty list
+                processed_results = st.session_state.current_session_data.get('processed_results', [])
+                st.session_state.processed_frames = processed_results
+                st.session_state.biomechanics_data = biomechanics.extract_time_series_data(processed_results)
                 st.session_state.frame_index = 0
                 
                 # Navigate to analysis page
@@ -560,13 +591,27 @@ elif app_mode == "Session History":
                 session2 = next((s for s in st.session_state.session_history if s['id'] == session2_id), None)
                 
                 if session1 and session2:
+                    # Load full sessions from the database for better data
+                    full_session1 = data_handler.load_session(session1['id'])
+                    full_session2 = data_handler.load_session(session2['id'])
+                    
+                    # Use full sessions if available, otherwise use what we have from history
+                    session1_data = full_session1 if full_session1 else session1
+                    session2_data = full_session2 if full_session2 else session2
+                    
+                    # Ensure processed_results exists in both sessions
+                    if 'processed_results' not in session1_data:
+                        session1_data['processed_results'] = []
+                    if 'processed_results' not in session2_data:
+                        session2_data['processed_results'] = []
+                    
                     # Extract time series data for both sessions
-                    biomechanics_data1 = biomechanics.extract_time_series_data(session1['processed_results'])
-                    biomechanics_data2 = biomechanics.extract_time_series_data(session2['processed_results'])
+                    biomechanics_data1 = biomechanics.extract_time_series_data(session1_data['processed_results'])
+                    biomechanics_data2 = biomechanics.extract_time_series_data(session2_data['processed_results'])
                     
                     # Calculate performance metrics
-                    metrics1 = biomechanics.calculate_performance_metrics(biomechanics_data1, session1['processed_results'])
-                    metrics2 = biomechanics.calculate_performance_metrics(biomechanics_data2, session2['processed_results'])
+                    metrics1 = biomechanics.calculate_performance_metrics(biomechanics_data1, session1_data['processed_results'])
+                    metrics2 = biomechanics.calculate_performance_metrics(biomechanics_data2, session2_data['processed_results'])
                     
                     # Display comparative visualization
                     st.subheader("Comparative Analysis")
