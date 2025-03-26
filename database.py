@@ -34,24 +34,37 @@ class BowlingSession(Base):
     def to_dict(self):
         """Convert model to dictionary"""
         try:
-            # Load processed results safely
-            processed_results = []
+            # Load simplified biomechanics data safely
+            biomechanics_data = []
             if self.processed_results_data:
                 try:
-                    processed_results = pickle.loads(self.processed_results_data)
+                    biomechanics_data = pickle.loads(self.processed_results_data)
                 except Exception as e:
-                    print(f"Error deserializing processed results: {str(e)}")
+                    print(f"Error deserializing biomechanics data: {str(e)}")
+                    biomechanics_data = []
             
-            # Build the dictionary
-            return {
+            # Build the dictionary with placeholder for processed_results
+            # We'll only include the biomechanics data (no frames or landmarks)
+            # This avoids serialization issues with complex numpy arrays
+            session_dict = {
                 'id': self.id,
                 'name': self.name,
                 'bowler': self.bowler,
                 'type': self.type,
                 'date': self.date.strftime('%Y-%m-%d %H:%M:%S') if self.date else None,
                 'fps': self.fps,
-                'processed_results': processed_results
+                'processed_results': []  # Empty list will be filled with placeholder objects
             }
+            
+            # Create minimal processed_results entries with just the biomechanics data
+            for i, data in enumerate(biomechanics_data):
+                session_dict['processed_results'].append({
+                    'frame': None,  # No frame data
+                    'landmarks': None,  # No landmarks
+                    'biomechanics': data.get('biomechanics', None)
+                })
+            
+            return session_dict
         except Exception as e:
             print(f"Error in to_dict conversion: {str(e)}")
             # Return minimal dict on error
@@ -117,28 +130,23 @@ def save_session_to_db(session_data):
         }
         
         # Process the processed_results to make them more serializable
-        processed_results = []
+        # Store only the biomechanics data, not the frames (which are large numpy arrays)
+        simplified_results = []
         for result in session_data['processed_results']:
-            # Make a copy without non-serializable objects
+            # Only keep the biomechanics data, which should be more easily serializable
             result_copy = {
-                'frame': result['frame'].copy() if 'frame' in result and result['frame'] is not None else None,
                 'biomechanics': result.get('biomechanics', None)
-                # Skip 'landmarks' as they might not be serializable
+                # Skip frame and landmarks as they aren't easily serializable
             }
-            processed_results.append(result_copy)
+            simplified_results.append(result_copy)
         
-        # Serialize processed_results
+        # Serialize simplified results
         try:
-            processed_results_binary = pickle.dumps(processed_results)
+            processed_results_binary = pickle.dumps(simplified_results)
         except Exception as pickle_error:
-            print(f"Error serializing processed results: {str(pickle_error)}")
-            # Fallback to a more minimal representation
-            minimal_results = [{
-                'frame': result.get('frame', None),
-                'biomechanics': result.get('biomechanics', None)
-            } for result in processed_results]
-            
-            # Try to pickle the minimal results
+            print(f"Error serializing simplified results: {str(pickle_error)}")
+            # Fallback to an even more minimal representation with just basic data
+            minimal_results = [{'biomechanics': result.get('biomechanics', {})} for result in simplified_results]
             processed_results_binary = pickle.dumps(minimal_results)
         
         # Parse the date

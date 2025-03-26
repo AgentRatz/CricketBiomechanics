@@ -289,7 +289,14 @@ elif app_mode == "Analyze Session":
         st.warning("No session data available for analysis. Please record a new session or select one from history.")
     else:
         session_data = st.session_state.current_session_data
-        processed_results = session_data['processed_results']
+        processed_results = session_data.get('processed_results', [])
+        
+        # Handling case where processed_results might have None frame data
+        # This is likely when loading from the database with our simplified storage approach
+        if processed_results and 'frame' in processed_results[0] and processed_results[0]['frame'] is None:
+            st.info("Using simplified analysis with biomechanics data only (frames not loaded from database)")
+            
+            # If we need frame data for display later, we could regenerate it here or show placeholders
         
         # Session information in a nice container
         st.markdown("""
@@ -351,7 +358,15 @@ elif app_mode == "Analyze Session":
                 
                 # Display current frame with landmarks
                 current_result = processed_results[st.session_state.frame_index]
-                st.image(current_result['frame'], caption=f"Frame {st.session_state.frame_index}", use_column_width=True)
+                
+                # Check if the frame is available (it might be None if loaded from DB)
+                if current_result.get('frame') is not None:
+                    st.image(current_result['frame'], caption=f"Frame {st.session_state.frame_index}", use_column_width=True)
+                else:
+                    # Display a placeholder for frame data
+                    st.info("Frame image not available - using simplified data from database")
+                    # Display a placeholder image with the VIT-AP logo
+                    st.image("attached_assets/vitap.png", caption="Frame data not stored in database", use_column_width=True)
         
         with col2:
             st.subheader("Frame Controls")
@@ -404,7 +419,14 @@ elif app_mode == "Analyze Session":
                         st.markdown(f"**{phase_name}**")
                         if frame_idx is not None and 0 <= frame_idx < len(processed_results):
                             phase_result = processed_results[frame_idx]
-                            st.image(phase_result['frame'], use_column_width=True)
+                            
+                            # Check if frame is available
+                            if phase_result.get('frame') is not None:
+                                st.image(phase_result['frame'], use_column_width=True)
+                            else:
+                                # Show placeholder
+                                st.info(f"Phase {phase_name} frame not available")
+                                st.image("attached_assets/vitap.png", width=150)
                             
                             if phase_result['biomechanics']:
                                 biometrics = phase_result['biomechanics']

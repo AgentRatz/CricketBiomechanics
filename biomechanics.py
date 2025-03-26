@@ -198,11 +198,20 @@ def identify_bowling_phases(processed_results):
         'Follow Through': None
     }
     
-    # Need at least some frames with biomechanics data
-    valid_frames = [i for i, result in enumerate(processed_results) 
-                    if result['biomechanics'] is not None]
+    # Safety check for empty or invalid data
+    if not processed_results:
+        print("No processed results provided to identify_bowling_phases")
+        return phases
+    
+    # Verify frames have biomechanics data
+    valid_frames = []
+    for i, result in enumerate(processed_results):
+        # Check that the structure includes biomechanics
+        if result and 'biomechanics' in result and result['biomechanics'] is not None:
+            valid_frames.append(i)
     
     if not valid_frames:
+        print("No valid frames with biomechanics data found")
         return phases
     
     # Extract arm angles across frames
@@ -211,11 +220,13 @@ def identify_bowling_phases(processed_results):
     
     for i in valid_frames:
         result = processed_results[i]
-        if result['biomechanics']:
+        # Use get() with default to avoid KeyError
+        if result['biomechanics'] and 'arm_angle' in result['biomechanics'] and 'trunk_angle' in result['biomechanics']:
             arm_angles.append((i, result['biomechanics']['arm_angle']))
             trunk_angles.append((i, result['biomechanics']['trunk_angle']))
     
     if not arm_angles or not trunk_angles:
+        print("Could not extract arm or trunk angles from biomechanics data")
         return phases
     
     # Find run-up phase - early frames with relatively consistent arm angle
@@ -278,11 +289,13 @@ def calculate_performance_metrics(biomechanics_data, processed_results):
     
     # Extract arm angle at release
     if release_frame is not None and 0 <= release_frame < len(processed_results):
-        release_data = processed_results[release_frame]['biomechanics']
-        if release_data:
-            metrics['Arm Angle at Release'] = release_data['arm_angle']
-            metrics['Wrist Angle at Release'] = release_data['wrist_angle']
-            metrics['Release Height'] = release_data['release_point_height'] * 100  # As percentage of frame height
+        # Get biomechanics data safely
+        release_biomechanics = processed_results[release_frame].get('biomechanics', None)
+        if release_biomechanics:
+            # Get metrics using get with defaults to avoid KeyError
+            metrics['Arm Angle at Release'] = release_biomechanics.get('arm_angle', 0)
+            metrics['Wrist Angle at Release'] = release_biomechanics.get('wrist_angle', 0)
+            metrics['Release Height'] = release_biomechanics.get('release_point_height', 0) * 100  # As percentage of frame height
     
     # If we don't have release frame data, use the time series data
     if 'Arm Angle at Release' not in metrics and 'arm_angle' in biomechanics_data:
