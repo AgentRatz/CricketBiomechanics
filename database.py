@@ -33,15 +33,37 @@ class BowlingSession(Base):
     
     def to_dict(self):
         """Convert model to dictionary"""
-        return {
-            'id': self.id,
-            'name': self.name,
-            'bowler': self.bowler,
-            'type': self.type,
-            'date': self.date.strftime('%Y-%m-%d %H:%M:%S') if self.date else None,
-            'fps': self.fps,
-            'processed_results': pickle.loads(self.processed_results_data) if self.processed_results_data else []
-        }
+        try:
+            # Load processed results safely
+            processed_results = []
+            if self.processed_results_data:
+                try:
+                    processed_results = pickle.loads(self.processed_results_data)
+                except Exception as e:
+                    print(f"Error deserializing processed results: {str(e)}")
+            
+            # Build the dictionary
+            return {
+                'id': self.id,
+                'name': self.name,
+                'bowler': self.bowler,
+                'type': self.type,
+                'date': self.date.strftime('%Y-%m-%d %H:%M:%S') if self.date else None,
+                'fps': self.fps,
+                'processed_results': processed_results
+            }
+        except Exception as e:
+            print(f"Error in to_dict conversion: {str(e)}")
+            # Return minimal dict on error
+            return {
+                'id': self.id,
+                'name': self.name,
+                'bowler': self.bowler,
+                'type': self.type,
+                'date': self.date.strftime('%Y-%m-%d %H:%M:%S') if self.date else None,
+                'fps': self.fps,
+                'processed_results': []
+            }
 
 class AnalysisReport(Base):
     """SQLAlchemy model for analysis reports"""
@@ -76,6 +98,7 @@ def save_session_to_db(session_data):
     Returns:
         bool: Success status
     """
+    db_session = None
     try:
         # Initialize database
         initialize_database()
@@ -93,8 +116,40 @@ def save_session_to_db(session_data):
             'fps': session_data['fps']
         }
         
+        # Process the processed_results to make them more serializable
+        processed_results = []
+        for result in session_data['processed_results']:
+            # Make a copy without non-serializable objects
+            result_copy = {
+                'frame': result['frame'].copy() if 'frame' in result and result['frame'] is not None else None,
+                'biomechanics': result.get('biomechanics', None)
+                # Skip 'landmarks' as they might not be serializable
+            }
+            processed_results.append(result_copy)
+        
         # Serialize processed_results
-        processed_results_binary = pickle.dumps(session_data['processed_results'])
+        try:
+            processed_results_binary = pickle.dumps(processed_results)
+        except Exception as pickle_error:
+            print(f"Error serializing processed results: {str(pickle_error)}")
+            # Fallback to a more minimal representation
+            minimal_results = [{
+                'frame': result.get('frame', None),
+                'biomechanics': result.get('biomechanics', None)
+            } for result in processed_results]
+            
+            # Try to pickle the minimal results
+            processed_results_binary = pickle.dumps(minimal_results)
+        
+        # Parse the date
+        if isinstance(session_data['date'], str):
+            try:
+                date_obj = datetime.datetime.strptime(session_data['date'], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                # Fallback to current date if parsing fails
+                date_obj = datetime.datetime.now()
+        else:
+            date_obj = session_data['date'] or datetime.datetime.now()
         
         # Create a new BowlingSession record
         new_session = BowlingSession(
@@ -102,7 +157,7 @@ def save_session_to_db(session_data):
             name=session_data['name'],
             bowler=session_data['bowler'],
             type=session_data['type'],
-            date=datetime.datetime.strptime(session_data['date'], '%Y-%m-%d %H:%M:%S') if isinstance(session_data['date'], str) else session_data['date'],
+            date=date_obj,
             fps=session_data['fps'],
             session_metadata=json.dumps(session_metadata),
             processed_results_data=processed_results_binary
@@ -111,12 +166,20 @@ def save_session_to_db(session_data):
         # Add to database and commit
         db_session.add(new_session)
         db_session.commit()
-        db_session.close()
         
+        print(f"Session {session_data['id']} saved successfully to database")
         return True
+        
     except Exception as e:
         print(f"Error saving session to database: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return False
+        
+    finally:
+        # Close the session if it was created
+        if db_session:
+            db_session.close()
 
 def load_sessions_from_db():
     """

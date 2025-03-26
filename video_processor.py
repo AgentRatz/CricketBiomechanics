@@ -75,31 +75,49 @@ def process_frame(frame):
     Returns:
         tuple: (processed frame with landmarks drawn, pose landmarks)
     """
-    # Make a copy of the frame for drawing
-    output_frame = frame.copy()
-    
-    # Get image dimensions
-    height, width = frame.shape[:2]
-    
-    # Process the frame with MediaPipe
-    # The frame is already in the correct format for MediaPipe Pose
-    results = pose.process(frame)
-    
-    # Check if pose landmarks were detected
-    if results.pose_landmarks:
-        # Draw the pose landmarks on the frame
-        mp_drawing.draw_landmarks(
-            output_frame, 
-            results.pose_landmarks, 
-            mp_pose.POSE_CONNECTIONS,
-            landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
-        )
+    try:
+        # Make a copy of the frame for drawing
+        output_frame = frame.copy()
         
-        # Return the processed frame and the landmarks
-        return output_frame, results.pose_landmarks
-    else:
-        # Return the original frame if no landmarks were detected
-        return output_frame, None
+        # Get image dimensions
+        height, width = frame.shape[:2]
+        
+        # Print frame information for debugging
+        print(f"Processing frame: shape={frame.shape}, dtype={frame.dtype}, min={np.min(frame)}, max={np.max(frame)}")
+        
+        # Process the frame with MediaPipe
+        # The frame is already in the correct format for MediaPipe Pose
+        results = pose.process(frame)
+        
+        # Check if pose landmarks were detected
+        if results and results.pose_landmarks:
+            # Draw the pose landmarks on the frame
+            mp_drawing.draw_landmarks(
+                output_frame, 
+                results.pose_landmarks, 
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+            )
+            
+            # Return the processed frame and the landmarks
+            return output_frame, results.pose_landmarks
+        else:
+            # Return the original frame if no landmarks were detected
+            print("No pose landmarks detected in frame")
+            return output_frame, None
+            
+    except Exception as e:
+        print(f"Error processing frame: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        
+        # Return the original frame on error
+        if frame is not None:
+            return frame.copy(), None
+        else:
+            # Create a blank frame if input is None
+            blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            return blank_frame, None
 
 def crop_frame_to_person(frame, landmarks, padding=50):
     """

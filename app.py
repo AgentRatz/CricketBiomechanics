@@ -72,59 +72,81 @@ if app_mode == "Record New Session":
                 st.video(uploaded_file)
                 
                 if st.button("Process Video"):
-                    with st.spinner("Processing video..."):
-                        # Process the video
-                        frames, fps = video_processor.extract_frames(video_path)
-                        if frames:
-                            processed_results = []
-                            progress_bar = st.progress(0)
-                            
-                            for i, frame in enumerate(frames):
-                                # Process frame with MediaPipe
-                                processed_frame, landmarks = video_processor.process_frame(frame)
+                    try:
+                        with st.spinner("Processing video..."):
+                            st.info("Step 1: Extracting frames from video...")
+                            # Process the video
+                            frames, fps = video_processor.extract_frames(video_path)
+                            if frames:
+                                processed_results = []
+                                progress_bar = st.progress(0)
                                 
-                                # Extract biomechanics if landmarks were detected
-                                if landmarks:
-                                    biomechanics_data = biomechanics.extract_biomechanics(landmarks, frame.shape)
-                                    processed_results.append({
-                                        'frame': processed_frame,
-                                        'landmarks': landmarks,
-                                        'biomechanics': biomechanics_data
-                                    })
-                                else:
-                                    processed_results.append({
-                                        'frame': processed_frame,
-                                        'landmarks': None,
-                                        'biomechanics': None
-                                    })
+                                st.info(f"Step 2: Processing {len(frames)} frames with MediaPipe...")
+                                for i, frame in enumerate(frames):
+                                    try:
+                                        # Process frame with MediaPipe
+                                        processed_frame, landmarks = video_processor.process_frame(frame)
+                                        
+                                        # Extract biomechanics if landmarks were detected
+                                        if landmarks:
+                                            biomechanics_data = biomechanics.extract_biomechanics(landmarks, frame.shape)
+                                            processed_results.append({
+                                                'frame': processed_frame,
+                                                'landmarks': landmarks,
+                                                'biomechanics': biomechanics_data
+                                            })
+                                        else:
+                                            processed_results.append({
+                                                'frame': processed_frame,
+                                                'landmarks': None,
+                                                'biomechanics': None
+                                            })
+                                        
+                                        # Update progress
+                                        progress_bar.progress((i + 1) / len(frames))
+                                    except Exception as frame_error:
+                                        st.error(f"Error processing frame {i}: {str(frame_error)}")
+                                        raise
                                 
-                                # Update progress
-                                progress_bar.progress((i + 1) / len(frames))
-                            
-                            # Save session data
-                            session_data = {
-                                'id': utils.generate_id(),
-                                'name': session_name,
-                                'bowler': bowler_name,
-                                'type': bowling_type,
-                                'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'processed_results': processed_results,
-                                'fps': fps
-                            }
-                            
-                            st.session_state.current_session_data = session_data
-                            st.session_state.processed_frames = processed_results
-                            
-                            # Extract biomechanics time series data
-                            st.session_state.biomechanics_data = biomechanics.extract_time_series_data(processed_results)
-                            
-                            # Save session to history
-                            data_handler.save_session(session_data)
-                            st.session_state.session_history = data_handler.load_session_history()
-                            
-                            # Navigate to analysis page
-                            st.session_state.app_mode = "Analyze Session"
-                            st.rerun()
+                                st.info("Step 3: Creating session data...")
+                                # Save session data
+                                session_data = {
+                                    'id': utils.generate_id(),
+                                    'name': session_name,
+                                    'bowler': bowler_name,
+                                    'type': bowling_type,
+                                    'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'processed_results': processed_results,
+                                    'fps': fps
+                                }
+                                
+                                st.info("Step 4: Updating session state...")
+                                st.session_state.current_session_data = session_data
+                                st.session_state.processed_frames = processed_results
+                                
+                                st.info("Step 5: Extracting time series data...")
+                                # Extract biomechanics time series data
+                                st.session_state.biomechanics_data = biomechanics.extract_time_series_data(processed_results)
+                                
+                                st.info("Step 6: Saving to database...")
+                                # Save session to history
+                                save_result = data_handler.save_session(session_data)
+                                if not save_result:
+                                    st.error("Failed to save session to database!")
+                                    raise Exception("Database save error")
+                                
+                                st.info("Step 7: Loading updated session history...")
+                                st.session_state.session_history = data_handler.load_session_history()
+                                
+                                st.success("Video processed and saved successfully!")
+                                
+                                # Navigate to analysis page
+                                st.session_state.app_mode = "Analyze Session"
+                                st.rerun()
+                    except Exception as e:
+                        st.error(f"Error processing video: {str(e)}")
+                        import traceback
+                        st.code(traceback.format_exc())
                 
                 # Clean up the temp file
                 os.unlink(video_path)
