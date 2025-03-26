@@ -15,7 +15,7 @@ import utils
 
 # Page configuration
 st.set_page_config(
-    page_title="Cricket Bowling Biomechanics Tracker",
+    page_title="Comparative Analysis of Hyperextended Elbow Mechanics",
     page_icon="🏏",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -35,16 +35,104 @@ if 'session_history' not in st.session_state:
 if 'selected_session' not in st.session_state:
     st.session_state.selected_session = None
 
-# App title and description
-st.title("🏏 Cricket Bowling Biomechanics Tracker")
+# Custom CSS
 st.markdown("""
-This application helps cricket coaches and players analyze bowling technique using video processing and biomechanical analysis. 
-Upload a video of your bowling action to get detailed insights on arm angle, wrist position, release point, and more.
+<style>
+    .main-header {
+        text-align: center;
+        padding: 0;
+        margin-bottom: 2rem;
+    }
+    .university-logo {
+        max-width: 300px; 
+        margin: 0 auto;
+        display: block;
+    }
+    .developer-info {
+        text-align: center;
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 1.5rem;
+    }
+    .metrics-container {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 5px;
+    }
+    .st-emotion-cache-1kyxreq {
+        margin-top: -60px;
+    }
+    .subheader {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: #aa0000;
+    }
+    .tab-content {
+        padding: 1rem;
+        border: 1px solid #e6e6e6;
+        border-radius: 5px;
+    }
+    .sidebar .stRadio {
+        background-color: #f0f2f6; 
+        padding: 1rem;
+        border-radius: 5px;
+    }
+    .tips-box {
+        border-left: 3px solid #aa0000;
+        padding-left: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# App title and logo
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    st.image("attached_assets/vitap.png", width=200)
+
+with col2:
+    st.markdown("<h1 class='main-header'>Comparative Analysis of Hyperextended Elbow Mechanics in Sport's Analytics</h1>", unsafe_allow_html=True)
+    st.markdown("<div class='developer-info'>Developed by: <b>CHINTAPENTA SAI RAHUL BHARADWAJ (21BCE7848)</b> | <b>PENDYALA SRI VENKATA PRANAV (21BCE7595)</b> | <b>ARYAN ANIL SHINDE (21BCE8722)</b></div>", unsafe_allow_html=True)
+
+st.markdown("""
+This advanced application analyzes cricket bowling technique using AI-powered video processing and biomechanical analysis. 
+Upload a video of your bowling action to get detailed insights on arm angle, wrist position, release point, and more with 
+visualization tools for comprehensive analysis.
 """)
 
 # Sidebar for navigation and controls
+st.sidebar.image("attached_assets/vitap.png", width=120)
 st.sidebar.title("Navigation")
+st.sidebar.markdown("<div class='subheader'>Bowling Biomechanics Analysis</div>", unsafe_allow_html=True)
+
+# Create colorful sidebar navigation
 app_mode = st.sidebar.radio("Select Mode:", ["Record New Session", "Analyze Session", "Session History"])
+
+# Add information section in sidebar
+with st.sidebar.expander("About the Project"):
+    st.markdown("""
+    This application analyzes cricket bowling biomechanics using advanced computer vision techniques to track body movements. 
+    
+    It focuses on understanding hyperextended elbow mechanics and providing actionable feedback for technique improvement.
+    
+    **Key Features:**
+    - Motion tracking with MediaPipe
+    - Detailed biomechanical measurements
+    - Comparative session analysis
+    - Performance metrics and scoring
+    - Personalized improvement suggestions
+    """)
+
+with st.sidebar.expander("Help & Instructions"):
+    st.markdown("""
+    1. **Record Session**: Upload a video of a bowling action
+    2. **Analyze Session**: View detailed biomechanics of current session
+    3. **Session History**: Access and compare previous sessions
+
+    For best results, record videos from a side angle in good lighting with the bowler's full action visible.
+    """)
 
 if app_mode == "Record New Session":
     st.header("Record New Bowling Session")
@@ -156,22 +244,38 @@ if app_mode == "Record New Session":
             st.info("Please upload a pre-recorded video for analysis.")
             
     with col2:
-        st.subheader("Recording Tips")
-        st.markdown("""
-        ### For Best Results:
+        st.markdown("<div class='subheader'>Recording Tips</div>", unsafe_allow_html=True)
         
-        * Record from side-on view for best biomechanical analysis
-        * Ensure good lighting conditions
-        * Wear contrasting clothing to background
-        * Keep the camera stable
-        * Capture the full bowling action, from run-up to follow-through
-        * Try to keep the bowler in frame throughout the action
+        with st.container():
+            st.markdown("""
+            <div class="tips-box">
+            <h3>For Best Results:</h3>
+            
+            <ul>
+                <li><strong>Angle:</strong> Record from side-on view for optimal biomechanical analysis</li>
+                <li><strong>Lighting:</strong> Ensure good, consistent lighting without shadows</li>
+                <li><strong>Clothing:</strong> Wear contrasting clothing to background</li>
+                <li><strong>Camera:</strong> Keep the camera stable, preferably on a tripod</li>
+                <li><strong>Coverage:</strong> Capture the full bowling action, from run-up to follow-through</li>
+                <li><strong>Framing:</strong> Keep the bowler in frame throughout the action</li>
+            </ul>
+            
+            <h3>Video Requirements:</h3>
+            <ul>
+                <li><strong>Formats:</strong> MP4, MOV, AVI</li>
+                <li><strong>Resolution:</strong> 720p or higher recommended</li>
+                <li><strong>Frame Rate:</strong> 30fps or higher for best results</li>
+                <li><strong>Duration:</strong> 3-10 seconds covering the complete action</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Example image
+        st.markdown("<h4 style='text-align: center; margin-top: 20px;'>Example of Good Recording Angle</h4>", unsafe_allow_html=True)
+        # This would typically be an example image, using logo as placeholder
+        st.image("attached_assets/vitap.png", width=280)
+        st.caption("Record from a side-on view to capture the full bowling action")
         
-        ### Video Requirements:
-        * Supported formats: MP4, MOV, AVI
-        * Recommended resolution: 720p or higher
-        * Recommended frame rate: 30fps or higher for best results
-        """)
 
 elif app_mode == "Analyze Session":
     st.header("Bowling Biomechanics Analysis")
@@ -183,14 +287,54 @@ elif app_mode == "Analyze Session":
         session_data = st.session_state.current_session_data
         processed_results = session_data['processed_results']
         
-        # Session information
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f"**Session Name:** {session_data['name']}")
-        with col2:
-            st.markdown(f"**Bowler:** {session_data['bowler']}")
-        with col3:
-            st.markdown(f"**Date:** {session_data['date']}")
+        # Session information in a nice container
+        st.markdown("""
+        <style>
+        .session-info {
+            background-color: #f0f2f6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .session-item {
+            text-align: center;
+            padding: 0 15px;
+        }
+        .session-label {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .session-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #111;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class="session-info">
+            <div class="session-item">
+                <div class="session-label">Session Name</div>
+                <div class="session-value">{session_data['name']}</div>
+            </div>
+            <div class="session-item">
+                <div class="session-label">Bowler</div>
+                <div class="session-value">{session_data['bowler']}</div>
+            </div>
+            <div class="session-item">
+                <div class="session-label">Bowling Type</div>
+                <div class="session-value">{session_data['type']}</div>
+            </div>
+            <div class="session-item">
+                <div class="session-label">Date</div>
+                <div class="session-value">{session_data['date']}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Frame navigation
         col1, col2 = st.columns([3, 1])
@@ -410,4 +554,24 @@ elif app_mode == "Session History":
 
 # Footer
 st.markdown("---")
-st.markdown("Cricket Bowling Biomechanics Tracker | Developed with Streamlit, OpenCV and MediaPipe")
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    st.image("attached_assets/vitap.png", width=100)
+
+with col2:
+    st.markdown("""
+    <div style="text-align: center; padding: 10px;">
+        <p><b>Comparative Analysis of Hyperextended Elbow Mechanics in Sport's Analytics</b></p>
+        <p style="font-size: 0.8rem;">Developed with Streamlit, OpenCV, MediaPipe, and PostgreSQL | © 2025 VIT-AP University</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+    <div style="text-align: right; padding: 10px;">
+        <p style="font-size: 0.8rem;"><b>Department of Computer Science</b><br>
+        Faculty of Engineering<br>
+        VIT-AP University</p>
+    </div>
+    """, unsafe_allow_html=True)

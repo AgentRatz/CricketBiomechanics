@@ -29,139 +29,128 @@ def extract_biomechanics(landmarks, frame_shape):
     Returns:
         dict: Dictionary of biomechanical measurements
     """
-    if landmarks is None:
-        return None
+    try:
+        if landmarks is None:
+            print("No landmarks provided to extract_biomechanics")
+            return None
+        
+        h, w = frame_shape[:2]
+        
+        # Initialize landmark coordinates with safe defaults
+        landmark_coords = {}
+        
+        # Function to safely extract landmark coordinates
+        def get_landmark_safely(landmark_idx):
+            try:
+                if landmark_idx >= len(landmarks.landmark):
+                    print(f"Landmark index {landmark_idx} out of range")
+                    return (0, 0)
+                
+                landmark = landmarks.landmark[landmark_idx]
+                if not hasattr(landmark, 'visibility') or landmark.visibility < 0.5:
+                    print(f"Landmark {landmark_idx} has low visibility")
+                    return (0, 0)
+                
+                return (landmark.x * w, landmark.y * h)
+            except Exception as e:
+                print(f"Error extracting landmark {landmark_idx}: {str(e)}")
+                return (0, 0)
+        
+        # Extract key landmark coordinates with safety checks
+        # Shoulder landmarks
+        left_shoulder = get_landmark_safely(11)
+        right_shoulder = get_landmark_safely(12)
+        
+        # Elbow landmarks
+        left_elbow = get_landmark_safely(13)
+        right_elbow = get_landmark_safely(14)
+        
+        # Wrist landmarks
+        left_wrist = get_landmark_safely(15)
+        right_wrist = get_landmark_safely(16)
+        
+        # Hip landmarks
+        left_hip = get_landmark_safely(23)
+        right_hip = get_landmark_safely(24)
     
-    h, w = frame_shape[:2]
+        # Knee landmarks
+        left_knee = get_landmark_safely(25)
+        right_knee = get_landmark_safely(26)
     
-    # Extract key landmark coordinates
-    # Use visibility to filter out occluded landmarks
+        # Ankle landmarks
+        left_ankle = get_landmark_safely(27)
+        right_ankle = get_landmark_safely(28)
     
-    # Shoulder landmarks
-    left_shoulder = (
-        landmarks.landmark[11].x * w,
-        landmarks.landmark[11].y * h
-    )
-    right_shoulder = (
-        landmarks.landmark[12].x * w,
-        landmarks.landmark[12].y * h
-    )
-    
-    # Elbow landmarks
-    left_elbow = (
-        landmarks.landmark[13].x * w,
-        landmarks.landmark[13].y * h
-    )
-    right_elbow = (
-        landmarks.landmark[14].x * w,
-        landmarks.landmark[14].y * h
-    )
-    
-    # Wrist landmarks
-    left_wrist = (
-        landmarks.landmark[15].x * w,
-        landmarks.landmark[15].y * h
-    )
-    right_wrist = (
-        landmarks.landmark[16].x * w,
-        landmarks.landmark[16].y * h
-    )
-    
-    # Hip landmarks
-    left_hip = (
-        landmarks.landmark[23].x * w,
-        landmarks.landmark[23].y * h
-    )
-    right_hip = (
-        landmarks.landmark[24].x * w,
-        landmarks.landmark[24].y * h
-    )
-    
-    # Knee landmarks
-    left_knee = (
-        landmarks.landmark[25].x * w,
-        landmarks.landmark[25].y * h
-    )
-    right_knee = (
-        landmarks.landmark[26].x * w,
-        landmarks.landmark[26].y * h
-    )
-    
-    # Ankle landmarks
-    left_ankle = (
-        landmarks.landmark[27].x * w,
-        landmarks.landmark[27].y * h
-    )
-    right_ankle = (
-        landmarks.landmark[28].x * w,
-        landmarks.landmark[28].y * h
-    )
-    
-    # Calculate biomechanical measurements
-    
-    # Arm angle (shoulder-elbow-wrist)
-    # For right-handed bowlers, use right arm
-    # For left-handed bowlers, would need to detect and use left arm
-    bowling_arm_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
-    
-    # Wrist angle (elbow-wrist-index finger)
-    # Approximating using the elbow-wrist vector and assuming wrist extension
-    wrist_angle = 180 - abs(bowling_arm_angle - 180)
-    
-    # Trunk angle (shoulder-hip vertical alignment)
-    # Vertical alignment of shoulders relative to hips
-    trunk_angle = np.rad2deg(np.arctan2(
-        abs(right_shoulder[0] - right_hip[0]),
-        abs(right_shoulder[1] - right_hip[1])
-    ))
-    
-    # Front knee angle (hip-knee-ankle)
-    front_knee_angle = calculate_angle(left_hip, left_knee, left_ankle)
-    
-    # Back knee angle
-    back_knee_angle = calculate_angle(right_hip, right_knee, right_ankle)
-    
-    # Shoulder rotation (estimated from shoulder alignment)
-    shoulder_rotation = np.rad2deg(np.arctan2(
-        right_shoulder[1] - left_shoulder[1],
-        right_shoulder[0] - left_shoulder[0]
-    ))
-    
-    # Hip-shoulder separation (difference in alignment between hips and shoulders)
-    hip_alignment = np.rad2deg(np.arctan2(
-        right_hip[1] - left_hip[1],
-        right_hip[0] - left_hip[0]
-    ))
-    hip_shoulder_separation = abs(shoulder_rotation - hip_alignment)
-    
-    # Release point - using wrist position
-    release_point_height = right_wrist[1] / h  # Normalized by frame height
-    release_point_horizontal = right_wrist[0] / w  # Normalized by frame width
-    
-    # Return all biomechanical measurements
-    return {
-        'arm_angle': bowling_arm_angle,
-        'wrist_angle': wrist_angle,
-        'trunk_angle': trunk_angle,
-        'front_knee_angle': front_knee_angle,
-        'back_knee_angle': back_knee_angle,
-        'shoulder_rotation': shoulder_rotation,
-        'hip_shoulder_separation': hip_shoulder_separation,
-        'release_point_height': release_point_height,
-        'release_point_horizontal': release_point_horizontal,
-        'shoulder_coordinates': {
-            'left': left_shoulder,
-            'right': right_shoulder
-        },
-        'elbow_coordinates': {
-            'left': left_elbow,
-            'right': right_elbow
-        },
-        'wrist_coordinates': {
-            'left': left_wrist,
-            'right': right_wrist
+        # Calculate biomechanical measurements
+        
+        # Arm angle (shoulder-elbow-wrist)
+        # For right-handed bowlers, use right arm
+        # For left-handed bowlers, would need to detect and use left arm
+        bowling_arm_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
+        
+        # Wrist angle (elbow-wrist-index finger)
+        # Approximating using the elbow-wrist vector and assuming wrist extension
+        wrist_angle = 180 - abs(bowling_arm_angle - 180)
+        
+        # Trunk angle (shoulder-hip vertical alignment)
+        # Vertical alignment of shoulders relative to hips
+        trunk_angle = np.rad2deg(np.arctan2(
+            abs(right_shoulder[0] - right_hip[0]),
+            abs(right_shoulder[1] - right_hip[1])
+        ))
+        
+        # Front knee angle (hip-knee-ankle)
+        front_knee_angle = calculate_angle(left_hip, left_knee, left_ankle)
+        
+        # Back knee angle
+        back_knee_angle = calculate_angle(right_hip, right_knee, right_ankle)
+        
+        # Shoulder rotation (estimated from shoulder alignment)
+        shoulder_rotation = np.rad2deg(np.arctan2(
+            right_shoulder[1] - left_shoulder[1],
+            right_shoulder[0] - left_shoulder[0]
+        ))
+        
+        # Hip-shoulder separation (difference in alignment between hips and shoulders)
+        hip_alignment = np.rad2deg(np.arctan2(
+            right_hip[1] - left_hip[1],
+            right_hip[0] - left_hip[0]
+        ))
+        hip_shoulder_separation = abs(shoulder_rotation - hip_alignment)
+        
+        # Release point - using wrist position
+        release_point_height = right_wrist[1] / h  # Normalized by frame height
+        release_point_horizontal = right_wrist[0] / w  # Normalized by frame width
+        
+        # Return all biomechanical measurements
+        return {
+            'arm_angle': bowling_arm_angle,
+            'wrist_angle': wrist_angle,
+            'trunk_angle': trunk_angle,
+            'front_knee_angle': front_knee_angle,
+            'back_knee_angle': back_knee_angle,
+            'shoulder_rotation': shoulder_rotation,
+            'hip_shoulder_separation': hip_shoulder_separation,
+            'release_point_height': release_point_height,
+            'release_point_horizontal': release_point_horizontal,
+            'shoulder_coordinates': {
+                'left': left_shoulder,
+                'right': right_shoulder
+            },
+            'elbow_coordinates': {
+                'left': left_elbow,
+                'right': right_elbow
+            },
+            'wrist_coordinates': {
+                'left': left_wrist,
+                'right': right_wrist
+            }
         }
-    }
+    except Exception as e:
+        print(f"Error in extract_biomechanics: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return None
 
 def extract_time_series_data(processed_results):
     """
