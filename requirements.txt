@@ -1,5 +1,11 @@
 biomechanics
-opencv-python-headless
+opencv-python-headless==4.8.1.78
+numpy
+pandas
+streamlit
+plotly
+mediapipe
+sqlalchemy
 data_handler
 database
 mediapipe
