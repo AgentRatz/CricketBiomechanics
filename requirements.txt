@@ -5,4 +5,4 @@ streamlit
 plotly
 mediapipe==0.9.1.0
 sqlalchemy
-psycopg2-binary  # Required for database connections
+psycopg2-binary
