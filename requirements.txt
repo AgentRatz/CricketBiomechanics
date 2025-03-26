@@ -4,11 +4,10 @@ numpy
 pandas
 streamlit
 plotly
-mediapipe
+mediapipe==0.9.1.0
 sqlalchemy
 data_handler
 database
-mediapipe
 numpy
 pandas
 pickle
