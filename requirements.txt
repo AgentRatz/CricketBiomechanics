@@ -5,16 +5,4 @@ streamlit
 plotly
 mediapipe==0.9.1.0
 sqlalchemy
-data_handler
-database
-numpy
-pandas
-pickle
-plotly
-sqlalchemy
-streamlit
-traceback
-utils
-uuid
-video_processor
-visualization
+psycopg2-binary  # Required for database connections
