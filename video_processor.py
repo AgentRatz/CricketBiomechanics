@@ -10,7 +10,7 @@ os.environ["MEDIAPIPE_MODELS_PATH"] = "/tmp/mediapipe_models"
 # Ensure the directory exists
 os.makedirs("/tmp/mediapipe_models", exist_ok=True)
 
-)
+
 # Initialize MediaPipe Pose model
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
