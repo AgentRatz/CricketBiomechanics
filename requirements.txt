@@ -1,5 +1,5 @@
 biomechanics
-cv2
+opencv-python-headless
 data_handler
 database
 mediapipe
