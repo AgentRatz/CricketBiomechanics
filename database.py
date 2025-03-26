@@ -26,7 +26,7 @@ class BowlingSession(Base):
     type = Column(String)
     date = Column(DateTime, default=datetime.datetime.now)
     fps = Column(Float)
-    metadata = Column(Text)  # JSON string for metadata
+    session_metadata = Column(Text)  # JSON string for metadata
     
     # Store processed_results data as compressed binary
     processed_results_data = Column(LargeBinary)
@@ -104,7 +104,7 @@ def save_session_to_db(session_data):
             type=session_data['type'],
             date=datetime.datetime.strptime(session_data['date'], '%Y-%m-%d %H:%M:%S') if isinstance(session_data['date'], str) else session_data['date'],
             fps=session_data['fps'],
-            metadata=json.dumps(session_metadata),
+            session_metadata=json.dumps(session_metadata),
             processed_results_data=processed_results_binary
         )
         
