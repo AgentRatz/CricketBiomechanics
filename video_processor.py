@@ -78,7 +78,11 @@ def process_frame(frame):
     # Make a copy of the frame for drawing
     output_frame = frame.copy()
     
+    # Get image dimensions
+    height, width = frame.shape[:2]
+    
     # Process the frame with MediaPipe
+    # The frame is already in the correct format for MediaPipe Pose
     results = pose.process(frame)
     
     # Check if pose landmarks were detected
